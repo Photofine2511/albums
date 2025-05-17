@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -58,7 +57,7 @@ const AlbumPage: React.FC = () => {
         <Header />
         <main className="flex-grow flex items-center justify-center p-4">
           <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">
+            <h2 className="text-xl md:text-2xl font-bold mb-4">
               {error || "Loading album..."}
             </h2>
             <Button asChild>
@@ -79,7 +78,7 @@ const AlbumPage: React.FC = () => {
         <Header />
         <main className="flex-grow flex items-center justify-center">
           <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md w-[90%] mx-auto">
               <DialogHeader>
                 <DialogTitle>Enter Album Password</DialogTitle>
                 <DialogDescription>
@@ -121,12 +120,12 @@ const AlbumPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      <main className="flex-grow py-8 px-4">
+      <main className="flex-grow py-4 md:py-8 px-2 md:px-4">
         <div className="container mx-auto">
-          <div className="mb-6">
-            <Button asChild variant="ghost" className="mb-6">
+          <div className="mb-4 md:mb-6">
+            <Button asChild variant="ghost" className="mb-4 md:mb-6 text-xs md:text-sm" size="sm">
               <Link to="/" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-3 w-3 md:h-4 md:w-4" />
                 Return to Home
               </Link>
             </Button>
@@ -134,7 +133,7 @@ const AlbumPage: React.FC = () => {
           <AlbumViewer />
         </div>
       </main>
-      <footer className="py-4 text-center text-sm text-gray-500 bg-white border-t">
+      <footer className="py-3 md:py-4 text-center text-xs md:text-sm text-gray-500 bg-white border-t">
         <p>Album Uploader &copy; {new Date().getFullYear()}</p>
       </footer>
     </div>

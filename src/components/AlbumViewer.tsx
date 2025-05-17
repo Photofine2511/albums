@@ -67,16 +67,16 @@ const AlbumViewer: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-4">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-center mb-2">{albumName}</h2>
-        <div className="flex justify-center gap-4 text-sm text-gray-600">
+    <div className="w-full max-w-5xl mx-auto p-2 md:p-4">
+      <div className="mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-bold text-center mb-2">{albumName}</h2>
+        <div className="flex justify-center flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-600">
           <div className="flex items-center gap-1">
-            <User className="h-4 w-4" />
+            <User className="h-3 w-3 md:h-4 md:w-4" />
             {photographerName}
           </div>
           <div className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
+            <Calendar className="h-3 w-3 md:h-4 md:w-4" />
             {createdDate}
           </div>
         </div>
@@ -105,36 +105,38 @@ const AlbumViewer: React.FC = () => {
           </motion.div>
         </AnimatePresence>
 
-        <div className="absolute inset-x-0 bottom-0 flex justify-between p-4 bg-gradient-to-t from-black/70 to-transparent">
+        <div className="absolute inset-x-0 bottom-0 flex justify-between p-2 md:p-4 bg-gradient-to-t from-black/70 to-transparent">
           <Button 
             onClick={handlePrevious}
             variant="secondary" 
-            className="bg-white/30 backdrop-blur-sm hover:bg-white/50 text-white"
+            size="sm"
+            className="bg-white/30 backdrop-blur-sm hover:bg-white/50 text-white text-xs md:text-sm"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="ml-1">Previous</span>
+            <ArrowLeft className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="ml-1 hidden sm:inline">Previous</span>
           </Button>
           <Button 
             onClick={handleNext}
             variant="secondary" 
-            className="bg-white/30 backdrop-blur-sm hover:bg-white/50 text-white"
+            size="sm"
+            className="bg-white/30 backdrop-blur-sm hover:bg-white/50 text-white text-xs md:text-sm"
           >
-            <span className="mr-1">Next</span>
-            <ArrowRight className="h-4 w-4" />
+            <span className="mr-1 hidden sm:inline">Next</span>
+            <ArrowRight className="h-3 w-3 md:h-4 md:w-4" />
           </Button>
         </div>
 
-        <div className="absolute top-4 right-4 bg-black/50 text-white py-1 px-3 rounded-full text-sm backdrop-blur-sm">
+        <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-black/50 text-white py-1 px-2 rounded-full text-xs md:text-sm backdrop-blur-sm">
           {currentIndex + 1} / {displayImages.length}
         </div>
       </div>
 
-      <div className="mt-8 flex justify-center">
-        <div className="flex flex-wrap gap-3 max-w-3xl justify-center">
+      <div className="mt-4 md:mt-8 flex justify-center">
+        <div className="flex flex-wrap gap-1 md:gap-3 max-w-3xl justify-center">
           {displayImages.map((image, index) => (
             <div
               key={image.public_id}
-              className={`w-16 h-16 cursor-pointer rounded overflow-hidden border-2 transition-all
+              className={`w-12 h-12 md:w-16 md:h-16 cursor-pointer rounded overflow-hidden border-2 transition-all
                 ${currentIndex === index ? "border-purple scale-110" : "border-transparent opacity-70"}
               `}
               onClick={() => {
@@ -156,39 +158,42 @@ const AlbumViewer: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-8"
+          className="mt-6 md:mt-8"
         >
-          <QRCodeGenerator albumId={currentAlbum.id} />
+          <QRCodeGenerator albumId={currentAlbum.id} size={window.innerWidth < 640 ? 150 : 200} />
         </motion.div>
       )}
 
-      <div className="mt-8 flex justify-center gap-4">
+      <div className="mt-6 md:mt-8 flex justify-center flex-wrap gap-2 md:gap-4">
         <Button 
           onClick={handleViewAllAlbums} 
           variant="outline"
-          className="flex items-center gap-2"
+          size="sm"
+          className="flex items-center gap-1 md:gap-2 text-xs md:text-sm"
         >
-          <List className="h-4 w-4" />
-          All Albums
+          <List className="h-3 w-3 md:h-4 md:w-4" />
+          <span>All Albums</span>
         </Button>
         
         {currentAlbum && (
           <Button
             onClick={toggleQRCode}
             variant="outline"
-            className={`flex items-center gap-2 ${showQRCode ? "bg-purple/10" : ""}`}
+            size="sm"
+            className={`flex items-center gap-1 md:gap-2 text-xs md:text-sm ${showQRCode ? "bg-purple/10" : ""}`}
           >
-            <QrCode className="h-4 w-4" />
-            {showQRCode ? "Hide QR Code" : "Show QR Code"}
+            <QrCode className="h-3 w-3 md:h-4 md:w-4" />
+            <span>{showQRCode ? "Hide QR Code" : "Show QR Code"}</span>
           </Button>
         )}
         
         <Button 
           onClick={handleCreateNewAlbum} 
-          className="bg-purple hover:bg-purple-dark flex items-center gap-2"
+          size="sm"
+          className="bg-purple hover:bg-purple-dark flex items-center gap-1 md:gap-2 text-xs md:text-sm"
         >
-          <Images className="h-4 w-4" />
-          Create New Album
+          <Images className="h-3 w-3 md:h-4 md:w-4" />
+          <span>Create New Album</span>
         </Button>
       </div>
     </div>

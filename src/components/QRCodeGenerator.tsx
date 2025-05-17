@@ -1,8 +1,7 @@
-
 import React, { useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
-import { Download, Share } from "lucide-react";
+import { Download, Share, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface QRCodeGeneratorProps {
@@ -13,8 +12,10 @@ interface QRCodeGeneratorProps {
 const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ albumId, size = 200 }) => {
   const qrRef = useRef<HTMLDivElement>(null);
   
-  // Generate the URL to view the album
-  const albumUrl = `${window.location.origin}/album/${albumId}`;
+  // Generate the absolute URL to view the album
+  const albumUrl = window.location.href.includes('localhost') 
+    ? `${window.location.origin}/album/${albumId}` 
+    : `${window.location.protocol}//${window.location.host}/album/${albumId}`;
   
   const handleDownload = () => {
     if (!qrRef.current) return;
@@ -53,7 +54,13 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ albumId, size = 200 }
   
   const handleShare = async () => {
     if (!navigator.share) {
-      toast.error("Web Share API is not supported in your browser");
+      // Fallback for browsers that don't support the Web Share API
+      try {
+        await navigator.clipboard.writeText(albumUrl);
+        toast.success("Album URL copied to clipboard");
+      } catch (error) {
+        toast.error("Couldn't copy to clipboard. The Web Share API is not supported in your browser.");
+      }
       return;
     }
     
@@ -71,6 +78,15 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ albumId, size = 200 }
       }
     }
   };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(albumUrl);
+      toast.success("Album URL copied to clipboard");
+    } catch (error) {
+      toast.error("Failed to copy URL");
+    }
+  };
   
   return (
     <div className="flex flex-col items-center gap-4">
@@ -85,7 +101,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ albumId, size = 200 }
         />
       </div>
       
-      <div className="flex gap-3">
+      <div className="flex flex-wrap justify-center gap-3">
         <Button 
           variant="outline" 
           onClick={handleDownload}
@@ -101,6 +117,15 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ albumId, size = 200 }
         >
           <Share className="h-4 w-4" />
           Share
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={handleCopyLink}
+          className="flex items-center gap-2"
+        >
+          <Copy className="h-4 w-4" />
+          Copy Link
         </Button>
       </div>
       
