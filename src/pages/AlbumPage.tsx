@@ -3,53 +3,124 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Album } from "../context/AlbumContext";
+import { Album, AlbumProvider, useAlbum } from "../context/AlbumContext";
 import AlbumViewer from "../components/AlbumViewer";
 import Header from "../components/Header";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { albumApi } from "../services/api";
 
-const AlbumPage: React.FC = () => {
+const AlbumPageContent: React.FC = () => {
   const { albumId } = useParams<{ albumId: string }>();
   const [album, setAlbum] = useState<Album | null>(null);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(true);
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const { setCurrentAlbum } = useAlbum();
 
-  // Load the album from localStorage
+  // Load the album from both API and localStorage
   useEffect(() => {
-    const loadAlbum = () => {
-      const savedAlbums = localStorage.getItem("albums");
-      if (savedAlbums) {
-        const albums: Album[] = JSON.parse(savedAlbums);
-        const foundAlbum = albums.find(a => a.id === albumId);
-        if (foundAlbum) {
-          setAlbum(foundAlbum);
-        } else {
-          setError("Album not found");
-          toast.error("Album not found");
+    const loadAlbum = async () => {
+      if (!albumId) return;
+      
+      setIsLoading(true);
+      
+      try {
+        // First try to load from API
+        try {
+          const apiAlbum = await albumApi.getAlbumById(albumId);
+          if (apiAlbum) {
+            setAlbum(apiAlbum);
+            setIsLoading(false);
+            return;
+          }
+        } catch (apiError) {
+          console.log("Could not load album from API, trying localStorage");
         }
-      } else {
-        setError("No albums found");
-        toast.error("No albums found");
+        
+        // If API fails, try localStorage as fallback
+        const savedAlbums = localStorage.getItem("albums");
+        if (savedAlbums) {
+          const albums: Album[] = JSON.parse(savedAlbums);
+          const foundAlbum = albums.find(a => a.id === albumId || a._id === albumId);
+          if (foundAlbum) {
+            setAlbum(foundAlbum);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        setError("Album not found");
+        toast.error("Album not found");
+      } catch (error) {
+        console.error("Error loading album:", error);
+        setError("Failed to load album");
+        toast.error("Failed to load album");
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadAlbum();
   }, [albumId]);
 
-  const handleVerifyPassword = () => {
-    if (album && password === album.password) {
-      setIsAuthenticated(true);
-      setIsPasswordDialogOpen(false);
-      toast.success("Access granted");
-    } else {
-      setError("Incorrect password");
-      toast.error("Incorrect password");
+  const handleVerifyPassword = async () => {
+    if (!album) return;
+    
+    try {
+      setIsLoading(true);
+      
+      try {
+        // Try to verify using the API first
+        const verifiedAlbum = await albumApi.verifyAlbumPassword(album.id || album._id || '', password);
+        if (verifiedAlbum) {
+          setCurrentAlbum(verifiedAlbum);
+          setIsAuthenticated(true);
+          setIsPasswordDialogOpen(false);
+          toast.success("Access granted");
+          return;
+        }
+      } catch (apiError) {
+        console.log("API verification failed, using local verification");
+      }
+      
+      // Fallback to local password verification
+      if (password === album.password) {
+        setCurrentAlbum(album);
+        setIsAuthenticated(true);
+        setIsPasswordDialogOpen(false);
+        toast.success("Access granted");
+      } else {
+        setError("Incorrect password");
+        toast.error("Incorrect password");
+      }
+    } catch (error) {
+      console.error("Error verifying password:", error);
+      setError("Failed to verify password");
+      toast.error("Failed to verify password");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <main className="flex-grow flex items-center justify-center p-4">
+          <div className="text-center">
+            <h2 className="text-xl md:text-2xl font-bold mb-4">
+              Loading album...
+            </h2>
+            <div className="animate-pulse h-6 w-32 bg-gray-300 rounded-md mx-auto"></div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!album) {
     return (
@@ -58,7 +129,7 @@ const AlbumPage: React.FC = () => {
         <main className="flex-grow flex items-center justify-center p-4">
           <div className="text-center">
             <h2 className="text-xl md:text-2xl font-bold mb-4">
-              {error || "Loading album..."}
+              {error || "Album not found"}
             </h2>
             <Button asChild>
               <Link to="/" className="flex items-center gap-2">
@@ -97,10 +168,15 @@ const AlbumPage: React.FC = () => {
                     }
                   }}
                   className="col-span-3"
+                  disabled={isLoading}
                 />
                 {error && <p className="text-sm text-red-500">{error}</p>}
-                <Button onClick={handleVerifyPassword} className="bg-purple hover:bg-purple-dark">
-                  View Album
+                <Button 
+                  onClick={handleVerifyPassword} 
+                  className="bg-purple hover:bg-purple-dark"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Verifying..." : "View Album"}
                 </Button>
                 <div className="text-center mt-2">
                   <Button variant="ghost" asChild>
@@ -137,6 +213,14 @@ const AlbumPage: React.FC = () => {
         <p>Album Uploader &copy; {new Date().getFullYear()}</p>
       </footer>
     </div>
+  );
+};
+
+const AlbumPage: React.FC = () => {
+  return (
+    <AlbumProvider>
+      <AlbumPageContent />
+    </AlbumProvider>
   );
 };
 
