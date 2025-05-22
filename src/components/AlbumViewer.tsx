@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAlbum } from "../context/AlbumContext";
-import { ArrowLeft, ArrowRight, Images, List, User, Calendar, QrCode } from "lucide-react";
+import { ArrowLeft, ArrowRight, Images, List, User, Calendar, QrCode, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import QRCodeGenerator from "./QRCodeGenerator";
+import axios from "axios";
+import JSZip from "jszip";
 
 const AlbumViewer: React.FC = () => {
   const { uploadedImages, currentAlbum, reset, setCurrentStep } = useAlbum();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Use either the current album images or uploaded images
   const displayImages = currentAlbum ? currentAlbum.images : uploadedImages;
@@ -24,6 +27,14 @@ const AlbumViewer: React.FC = () => {
   const albumName = currentAlbum?.name || "Untitled Album";
   const photographerName = currentAlbum?.photographer || "Unknown";
   const createdDate = currentAlbum?.createdAt ? format(new Date(currentAlbum.createdAt), "MMMM d, yyyy") : format(new Date(), "MMMM d, yyyy");
+  
+  // Log the photographer name to debug
+  useEffect(() => {
+    if (showQRCode) {
+      console.log("Photographer name being passed to QR code:", photographerName);
+      console.log("Current album data:", currentAlbum);
+    }
+  }, [showQRCode, photographerName, currentAlbum]);
 
   const handlePrevious = () => {
     setDirection(-1);
@@ -49,6 +60,54 @@ const AlbumViewer: React.FC = () => {
 
   const toggleQRCode = () => {
     setShowQRCode(prev => !prev);
+  };
+
+  const handleDownloadAlbum = async () => {
+    if (!displayImages?.length) return;
+    
+    setIsDownloading(true);
+    
+    try {
+      // Create a zip file
+      const zip = new JSZip();
+      const folder = zip.folder(albumName);
+      
+      // Download each image and add to zip
+      const downloadPromises = displayImages.map(async (image, index) => {
+        try {
+          const response = await axios.get(image.secure_url, { responseType: 'blob' });
+          const blob = response.data;
+          const extension = image.secure_url.split('.').pop() || 'jpg';
+          const fileName = `image_${index + 1}.${extension}`;
+          
+          folder.file(fileName, blob);
+          return true;
+        } catch (error) {
+          console.error(`Failed to download image ${index + 1}:`, error);
+          return false;
+        }
+      });
+      
+      await Promise.all(downloadPromises);
+      
+      // Generate zip file and download it
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${albumName}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to create zip file:', error);
+      alert('Failed to download album. Please try again later.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const variants = {
@@ -131,36 +190,17 @@ const AlbumViewer: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-4 md:mt-8 flex justify-center">
-        <div className="flex flex-wrap gap-1 md:gap-3 max-w-3xl justify-center">
-          {displayImages.map((image, index) => (
-            <div
-              key={image.public_id}
-              className={`w-12 h-12 md:w-16 md:h-16 cursor-pointer rounded overflow-hidden border-2 transition-all
-                ${currentIndex === index ? "border-purple scale-110" : "border-transparent opacity-70"}
-              `}
-              onClick={() => {
-                setDirection(index > currentIndex ? 1 : -1);
-                setCurrentIndex(index);
-              }}
-            >
-              <img
-                src={image.secure_url}
-                alt={`Thumbnail ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
       {currentAlbum && showQRCode && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mt-6 md:mt-8"
         >
-          <QRCodeGenerator albumId={currentAlbum.id} size={window.innerWidth < 640 ? 150 : 200} />
+          <QRCodeGenerator 
+            albumId={currentAlbum.id} 
+            size={window.innerWidth < 640 ? 150 : 200} 
+            photographerName={photographerName}
+          />
         </motion.div>
       )}
 
@@ -186,6 +226,17 @@ const AlbumViewer: React.FC = () => {
             <span>{showQRCode ? "Hide QR Code" : "Show QR Code"}</span>
           </Button>
         )}
+        
+        <Button 
+          onClick={handleDownloadAlbum}
+          variant="outline"
+          size="sm"
+          disabled={isDownloading || !displayImages?.length}
+          className="flex items-center gap-1 md:gap-2 text-xs md:text-sm"
+        >
+          <Download className="h-3 w-3 md:h-4 md:w-4" />
+          <span>{isDownloading ? "Downloading..." : "Download Album"}</span>
+        </Button>
         
         <Button 
           onClick={handleCreateNewAlbum} 
