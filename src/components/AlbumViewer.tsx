@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAlbum } from "../context/AlbumContext";
-import { ArrowLeft, ArrowRight, Images, List, User, Calendar, QrCode, Download } from "lucide-react";
+import { ArrowLeft, ArrowRight, Images, List, User, Calendar, QrCode, Download, Maximize2, Minimize } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import QRCodeGenerator from "./QRCodeGenerator";
@@ -14,6 +14,8 @@ const AlbumViewer: React.FC = () => {
   const [direction, setDirection] = useState(0);
   const [showQRCode, setShowQRCode] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const imageAreaRef = React.useRef<HTMLDivElement>(null);
 
   // Use either the current album images or uploaded images
   const displayImages = currentAlbum ? currentAlbum.images : uploadedImages;
@@ -110,6 +112,56 @@ const AlbumViewer: React.FC = () => {
     }
   };
 
+  // Fullscreen handlers
+  const handleEnterFullscreen = () => {
+    if (imageAreaRef.current) {
+      if (imageAreaRef.current.requestFullscreen) {
+        imageAreaRef.current.requestFullscreen();
+      } else if ((imageAreaRef.current as any).webkitRequestFullscreen) {
+        (imageAreaRef.current as any).webkitRequestFullscreen();
+      } else if ((imageAreaRef.current as any).msRequestFullscreen) {
+        (imageAreaRef.current as any).msRequestFullscreen();
+      }
+    }
+  };
+
+  const handleExitFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else if ((document as any).webkitExitFullscreen) {
+      (document as any).webkitExitFullscreen();
+    } else if ((document as any).msExitFullscreen) {
+      (document as any).msExitFullscreen();
+    }
+  };
+
+  // Listen for fullscreen change
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+    document.addEventListener("msfullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
+      document.removeEventListener("msfullscreenchange", onFullscreenChange);
+    };
+  }, []);
+
+  // Keyboard navigation in fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") handlePrevious();
+      if (e.key === "ArrowRight") handleNext();
+      if (e.key === "Escape") handleExitFullscreen();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullscreen, handlePrevious, handleNext]);
+
   const variants = {
     enter: (direction: number) => ({
       x: direction > 0 ? 1000 : -1000,
@@ -141,7 +193,17 @@ const AlbumViewer: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative w-full max-w-3xl mx-auto aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 shadow-lg">
+      <div ref={imageAreaRef} className={`relative w-full max-w-3xl mx-auto aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 shadow-lg${isFullscreen ? ' z-[1000] bg-black' : ''}`}
+        style={isFullscreen ? { width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh', aspectRatio: 'unset', borderRadius: 0 } : {}}>
+        {/* Fullscreen button */}
+        <button
+          onClick={isFullscreen ? handleExitFullscreen : handleEnterFullscreen}
+          className="absolute top-2 right-2 z-20 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full focus:outline-none"
+          title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+        >
+          {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+        </button>
+
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={currentIndex}
@@ -160,6 +222,7 @@ const AlbumViewer: React.FC = () => {
               src={displayImages[currentIndex]?.secure_url}
               alt={`Album image ${currentIndex + 1}`}
               className="w-full h-full object-contain"
+              style={isFullscreen ? { background: 'black' } : {}}
             />
           </motion.div>
         </AnimatePresence>
@@ -185,7 +248,7 @@ const AlbumViewer: React.FC = () => {
           </Button>
         </div>
 
-        <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-black/50 text-white py-1 px-2 rounded-full text-xs md:text-sm backdrop-blur-sm">
+        <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-black/50 text-white py-1 px-2 rounded-full text-xs md:text-sm backdrop-blur-sm">
           {currentIndex + 1} / {displayImages.length}
         </div>
       </div>

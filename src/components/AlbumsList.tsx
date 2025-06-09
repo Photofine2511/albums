@@ -31,6 +31,11 @@ const AlbumsList: React.FC = () => {
   const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
+  const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   // Filter albums based on search term
   const filteredAlbums = useMemo(() => {
@@ -46,8 +51,28 @@ const AlbumsList: React.FC = () => {
   }, [loadAlbums]);
 
   const handleCreateNewAlbum = () => {
+    if (!isAdminAuthenticated) {
+      setIsAdminDialogOpen(true);
+      setAdminUsername("");
+      setAdminPassword("");
+      setAdminError("");
+      return;
+    }
     reset();
     setCurrentStep("upload");
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminUsername === "admin@photofine.com" && adminPassword === "Varad@2511") {
+      setIsAdminAuthenticated(true);
+      setIsAdminDialogOpen(false);
+      setAdminError("");
+      reset();
+      setCurrentStep("upload");
+    } else {
+      setAdminError("Invalid admin credentials");
+    }
   };
 
   const handleSelectAlbum = (album: Album) => {
@@ -334,6 +359,50 @@ const AlbumsList: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Admin Login Required
+            </DialogTitle>
+            <DialogDescription>
+              Enter admin credentials to create a new album.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAdminLogin} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="Admin Username"
+                value={adminUsername}
+                onChange={e => setAdminUsername(e.target.value)}
+                autoFocus
+              />
+              <Input
+                type="password"
+                placeholder="Admin Password"
+                value={adminPassword}
+                onChange={e => setAdminPassword(e.target.value)}
+              />
+              {adminError && (
+                <p className="text-sm text-red-500">{adminError}</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAdminDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Login</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
