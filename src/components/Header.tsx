@@ -15,7 +15,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto py-4 px-6 flex items-center justify-between">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentStep("upload")}>
           <Images className="h-6 w-6 text-purple" />
-          <h1 className="text-xl font-bold text-gray-800">Album Uploader</h1>
+          <h1 className="text-xl font-bold text-gray-800">Photofine Albums</h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-500 hidden md:block">Create beautiful digital albums</div>
