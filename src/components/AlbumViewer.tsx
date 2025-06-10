@@ -16,6 +16,7 @@ const AlbumViewer: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const imageAreaRef = React.useRef<HTMLDivElement>(null);
+  const pageFlipAudioRef = React.useRef<HTMLAudioElement | null>(null);
 
   // Use either the current album images or uploaded images
   const displayImages = currentAlbum ? currentAlbum.images : uploadedImages;
@@ -38,11 +39,20 @@ const AlbumViewer: React.FC = () => {
     }
   }, [showQRCode, photographerName, currentAlbum]);
 
+  // Helper to play the sound
+  const playPageFlip = () => {
+    if (pageFlipAudioRef.current) {
+      pageFlipAudioRef.current.currentTime = 0;
+      pageFlipAudioRef.current.play();
+    }
+  };
+
   const handlePrevious = () => {
     setDirection(-1);
     setCurrentIndex((prev) => 
       prev === 0 ? displayImages.length - 1 : prev - 1
     );
+    playPageFlip();
   };
 
   const handleNext = () => {
@@ -50,6 +60,7 @@ const AlbumViewer: React.FC = () => {
     setCurrentIndex((prev) => 
       prev === displayImages.length - 1 ? 0 : prev + 1
     );
+    playPageFlip();
   };
 
   const handleCreateNewAlbum = () => {
@@ -179,6 +190,9 @@ const AlbumViewer: React.FC = () => {
 
   return (
     <div className="w-full max-w-5xl mx-auto p-2 md:p-4">
+      {/* Audio element for page flip sound */}
+      <audio ref={pageFlipAudioRef} src="/page-flip.mp3" preload="auto" />
+
       <div className="mb-4 md:mb-6">
         <h2 className="text-xl md:text-2xl font-bold text-center mb-2">{albumName}</h2>
         <div className="flex justify-center flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-600">
